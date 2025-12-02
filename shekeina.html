@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday Shekeina</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply Inter font globally and ensure full-screen coverage */
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            background-color: #fce7f3; /* bg-fuchsia-100 */
+        }
+
+        /* Styling for the large, violet cake placeholder */
+        .cake-placeholder {
+            width: 100%;
+            max-width: 250px; 
+            height: 150px;
+            border-radius: 50% / 20%;
+            border: 8px solid #a855f7; /* Purple-700 */
+            background-color: #e9d5ff; /* Purple-200 */
+            box-shadow: 0 8px 16px rgba(168, 85, 247, 0.5), inset 0 -8px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .cake-placeholder::before {
+            content: '🎂';
+            font-size: 4rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Main container serves as the general context */
+        #main-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            min-height: 100vh;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Container for the 3 initial buttons - must be relative for absolute children */
+        #initial-button-container {
+            position: relative;
+            width: 90%;
+            height: 50px; 
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Initial button styling - Fixed position guaranteed by JS */
+        .initial-btn {
+            position: absolute; 
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 9999px;
+            color: white; 
+            background-color: #a855f7; /* Purple-700 */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: transform 0.1s;
+            white-space: nowrap; 
+            z-index: 10; 
+        }
+        .initial-btn:hover {
+            background-color: #9333ea; /* Purple-800 */
+            transform: scale(1.05);
+        }
+
+        /* Final button styling - Prominent and visible */
+        #final-button {
+            position: absolute;
+            top: 60vh;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.25rem;
+            padding: 1.25rem 2.5rem;
+            color: white; 
+            background-color: #ec4899; /* Pink-500/Fuchsia - Solid background */
+            box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.8), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+            animation: pulse-pink 2s infinite;
+            border-radius: 9999px;
+            z-index: 20;
+        }
+
+        @keyframes pulse-pink {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+
+        /* Confetti Styles and Animation */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            /* Note: 'burst-fall' animation keyframes are created dynamically in JS */
+        }
+    </style>
+</head>
+<body>
+
+    <main id="main-container" class="relative">
+        <!-- Main Centered Content -->
+        <div class="text-center mt-8 px-4 w-full">
+            <h1 class="text-5xl md:text-7xl font-extrabold text-purple-700 mb-4 tracking-tight">
+                Happy Birthday Shekeina
+            </h1>
+            <p class="text-lg md:text-2xl font-medium text-purple-600 mb-8">
+                Who is the prettiest of them all?
+            </p>
+        </div>
+
+        <!-- Violet Cake Placeholder -->
+        <div class="flex justify-center w-full">
+            <div class="cake-placeholder relative"></div>
+        </div>
+
+        <!-- Initial Button Container (Buttons are absolutely positioned inside this) -->
+        <div id="initial-button-container">
+            <button id="btn-arlene" class="initial-btn" data-name="Arlene" onclick="handleButtonClick(this)">Arlene</button>
+            <button id="btn-hener" class="initial-btn" data-name="Hener" onclick="handleButtonClick(this)">Hener</button>
+            <button id="btn-atorney" class="initial-btn" data-name="Atorney" onclick="handleButtonClick(this)">Atorney</button>
+        </div>
+
+        <!-- Final Button (Hidden initially) -->
+        <button id="final-button" class="hidden" onclick="handleFinalClick()">
+            It's You Shekeina💜!
+        </button>
+    </main>
+
+    <script>
+        // State to track which unique buttons have been clicked
+        const clickedStatus = {
+            'Arlene': false,
+            'Hener': false,
+            'Atorney': false
+        };
+
+        const finalButton = document.getElementById('final-button');
+        const initialButtonContainer = document.getElementById('initial-button-container');
+        const initialButtons = document.querySelectorAll('#initial-button-container .initial-btn');
+
+        // Confetti colors matching the theme
+        const CONFETTI_COLORS = [
+            '#a855f7', // Purple-700
+            '#ec4899', // Pink-500
+            '#f9a8d4', // Pink-300
+            '#e9d5ff'  // Purple-200
+        ];
+
+        /**
+         * 1. Sets the initial absolute position for all three buttons on load.
+         * Ensures wide and even spacing.
+         */
+        function setInitialPositions() {
+            if (initialButtons.length === 0) return; 
+
+            const containerWidth = initialButtonContainer.offsetWidth;
+            
+            // Measure the widest button to ensure consistent spacing
+            let maxButtonWidth = 0;
+            initialButtons.forEach(btn => {
+                if (btn.classList.contains('hidden')) btn.classList.remove('hidden'); 
+                maxButtonWidth = Math.max(maxButtonWidth, btn.offsetWidth);
+            });
+            
+            // Define centers as percentages for responsiveness
+            const centers = [
+                0.25, // 25% across the width (Left button)
+                0.50, // 50% across the width (Center button)
+                0.75  // 75% across the width (Right button)
+            ];
+
+            // Apply calculated positions
+            initialButtons.forEach((button, index) => {
+                const centerPosition = containerWidth * centers[index];
+                const buttonHalfWidth = button.offsetWidth / 2;
+                
+                let initialLeft = centerPosition - buttonHalfWidth;
+
+                button.style.left = `${initialLeft}px`;
+                button.style.top = '0px'; 
+            });
+        }
+        
+        /**
+         * Creates a burst of confetti at a specific screen position.
+         * @param {number} x X coordinate (viewport)
+         * @param {number} y Y coordinate (viewport)
+         * @param {number} count The number of confetti pieces to generate.
+         * @param {number} spread The maximum distance the confetti should spread horizontally/vertically.
+         */
+        function createConfetti(x, y, count = 30, spread = 300) {
+            
+            // Dynamic keyframe creation check
+            if (!document.getElementById('confetti-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'confetti-keyframes';
+                // Using CSS variables for animation end points
+                style.innerHTML = `
+                    @keyframes burst-fall {
+                        0% { 
+                            opacity: 1; 
+                            transform: translate(0, 0) rotateZ(0deg); 
+                        }
+                        100% { 
+                            opacity: 0; 
+                            transform: translate(var(--end-x), var(--end-y)) rotateZ(720deg); 
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            for (let i = 0; i < count; i++) {
+                const piece = document.createElement('div');
+                piece.classList.add('confetti');
+                
+                piece.style.backgroundColor = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+                
+                const size = Math.random() * 5 + 5;
+                piece.style.width = `${size}px`;
+                piece.style.height = `${Math.random() * 10 + 5}px`;
+
+                // Initial position: center of the button (viewport relative)
+                piece.style.left = `${x}px`;
+                piece.style.top = `${y}px`;
+                
+                // Animation properties for a burst effect
+                const angle = Math.random() * 360; 
+                const distance = Math.random() * spread + 50; 
+                const duration = Math.random() * 1.5 + 1.5; 
+
+                // Calculate final positions for CSS variables
+                const endX = distance * Math.cos(angle);
+                // Make confetti fall down the screen, not just explode radially
+                const endY = distance * Math.sin(angle) + 400; 
+
+                piece.style.setProperty('--end-x', `${endX}px`);
+                piece.style.setProperty('--end-y', `${endY}px`);
+                piece.style.animation = `burst-fall ${duration}s ease-out forwards`;
+                
+                document.body.appendChild(piece);
+
+                setTimeout(() => piece.remove(), duration * 1000 + 100);
+            }
+        }
+
+
+        /**
+         * Handles the button click: confetti, vanish, and status check.
+         * @param {HTMLElement} button The clicked button element.
+         */
+        function handleButtonClick(button) {
+            const name = button.dataset.name;
+
+            // Only proceed if this is the first time the button is clicked
+            if (name in clickedStatus && clickedStatus[name] === false) {
+                clickedStatus[name] = true;
+
+                // 1. Trigger Confetti (standard burst)
+                const rect = button.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                // 30 pieces, spread of 300px
+                createConfetti(centerX, centerY, 30, 300); 
+                
+                // 2. VANISH: Hide the button immediately
+                button.classList.add('hidden');
+            }
+            
+            checkFinalCondition();
+        }
+
+        /**
+         * Checks if all three unique buttons have been clicked and shows the final button.
+         */
+        function checkFinalCondition() {
+            // Check if every value in the clickedStatus object is true
+            const allClicked = Object.values(clickedStatus).every(status => status === true);
+
+            if (allClicked) {
+                // 1. Hide the container holding the now-vanished buttons
+                initialButtonContainer.classList.add('hidden');
+
+                // 2. TRIGGER MASSIVE CONFETTI FINALE
+                // Generate many bursts from the top of the screen to cover the viewport
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+
+                // Fire bursts from multiple points across the top half of the screen
+                const numBursts = 10;
+                for (let i = 0; i < numBursts; i++) {
+                    const burstX = (screenWidth / numBursts) * i + (screenWidth / (numBursts * 2)); // Spread out evenly
+                    const burstY = Math.random() * screenHeight * 0.2; // Start from top 20%
+                    
+                    // Generate 50 pieces per burst, with wider spread (700px)
+                    createConfetti(burstX, burstY, 50, 700); 
+                }
+
+                // 3. Wait briefly for confetti to start falling, then show button
+                setTimeout(() => {
+                    finalButton.classList.remove('hidden');
+                }, 500); // 500ms delay for the confetti to start covering the screen
+            }
+        }
+
+        /**
+         * Redirects the user when the final button is clicked.
+         */
+        function handleFinalClick() {
+            window.location.href = 'https://youtube.com/shorts/pGZEwqu3tqo';
+        }
+
+        // Initialize positions on load and re-calculate on resize for responsiveness
+        window.addEventListener('load', () => {
+            setTimeout(setInitialPositions, 200); 
+        });
+        window.addEventListener('resize', setInitialPositions);
+    </script>
+</body>
+</html>
+
